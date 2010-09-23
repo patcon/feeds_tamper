@@ -2,50 +2,20 @@
 // $Id$
 
 $plugin = array(
-  // The name of the table as found in the schema in hook_install. This
-  // must be an exportable type with the 'export' section defined.
   'schema' => 'feeds_tamper',
-
-  // The access permission to use. If not provided it will default to
-  // 'administer site configuration'
   'access' => 'administer feeds_tamper',
-
-  // You can actually define large chunks of the menu system here. Nothing
-  // is required here. If you leave out the values, the prefix will default
-  // to admin/build and the item will default to the plugin name.
-  'menu' => array(
-    'menu prefix' => 'admin/build',
-    'menu item' => 'feeds_tamper',
-    // Title of the top level menu. Note this should not be translated,
-    // as the menu system will translate it.
-    'menu title' => 'Feeds Tamper',
-    // Description of the top level menu, which is usually needed for
-    // menu items in an administration list. Will be translated
-    // by the menu system.
+  'menu'   => array(
+    'menu prefix'      => 'admin/build',
+    'menu item'        => 'feeds_tamper',
+    'menu title'       => 'Feeds Tamper',
     'menu description' => 'Feeds Tamper Configuration.',
   ),
-
-  // These are required to provide proper strings for referring to the
-  // actual type of exportable. "proper" means it will appear at the
-  // beginning of a sentence.
-  'title singular' => t('tamper set'),
+  'title singular'        => t('tamper set'),
   'title singular proper' => t('Tamper set'),
-  'title plural' => t('Tamper sets'),
-  'title plural proper' => t('Tamper sets'),
-
-  // This will provide you with a form for editing the properties on your
-  // exportable, with validate and submit handler.
-  //
-  // The item being edited will be in $form_state['item'].
-  //
-  // The submit handler is only responsible for moving data from
-  // $form_state['values'] to $form_state['item'].
-  //
-  // All callbacks will accept &$form and &$form_state as arguments.
+  'title plural'          => t('Tamper sets'),
+  'title plural proper'   => t('Tamper sets'),
   'form' => array(
     'settings' => 'feeds_tamper_ctools_export_ui_form',
-    //'validate' => 'feeds_tamper_ctools_export_ui_form_validate',
-    //'submit' => 'feeds_tamper_ctools_export_ui_form_submit',
   ),
 );
 
@@ -53,44 +23,76 @@ $plugin = array(
 * Define the preset add/edit form.
 */
 function feeds_tamper_ctools_export_ui_form(&$form, &$form_state) {
+  //drupal_add_js(drupal_get_path('module', 'feeds_tamper') . '/plugins/export_ui/export.js');
   $preset = $form_state['item'];
-
+  $settings = $preset->feeds_tamper_wrapper;
   $importers = feeds_enabled_importers();
 
-  $form['importer'] = array(
+  $form['importers'] = array(
     '#type' => 'checkboxes',
     '#options' => array_combine($importers, $importers),
     '#title' => t('Importers'),
+    '#default_options' => isset($settings['importers']) ? array_keys($settings['importers']) : array(),
   );
 
-  $data = array(
-            0 => 'First One',
-            1 => 'Another One',
-            2 => 'Some One',
-          );
-
-  $form['list']['#tree'] = TRUE;
-  $form['list']['#theme'] = 'feeds_tamper_list_sort_form';
-  foreach ($data as $key => $title) {
-    $form['list'][$key]['title'] = array('#value' => $title);
-    $form['list'][$key]['sort'] = array('#type' => 'weight', '#delta' => count($data), '#default_value' => $key);
+  ctools_include('dependent');
+  foreach ($importers as $importer_name) {
+    $imp = str_replace('_', '-', $importer_name);
+    $form['targets'][$importer_name] = array(
+      '#tree' => TRUE,
+      '#process' => array('ctools_dependent_process', 'expand_checkboxes'),
+      '#dependency' => array("edit-importers-$imp" => array(TRUE)),
+      '#type' => 'checkboxes',
+      '#options' => feeds_tamper_parse_mappers($importer_name),
+      '#title' => t('Targets for ' . $importer_name),
+      '#prefix' => '<div id="edit-' . $imp . '-wrapper"><div id="' .$imp.'">',
+      '#suffix' => '</div></div>',
+      '#default_options' => isset($settings['importers'][$importer_name]) ? $settings['importers'][$importer_name] : array(),
+    );
   }
-
+  $form['plugins'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Plugins'),
+    '#tree' => TRUE,
+  );
   $plugins = feeds_tamper_get_plugins();
   $options = array();
   foreach ($plugins as $key => $plugin) {
     $options[$key] = $plugin['name'];
   }
-  $form['plugin'] = array(
-    '#type' => 'select',
-    '#options' => $options,
+  $k = array_keys($options);
+  $form['plugins']['type'] = array(
+    '#tree' => TRUE,
     '#title' => 'The plugin to add',
+    '#type' => 'radios',
+    '#options' => $options,
+    '#default_value' => $k[0],
   );
-  ctools_include('modal');
-  ctools_modal_add_js();
+  foreach ($plugins as $key => $plugin) {
+    $plugin_form = $plugin['form'];
+    $tmp_form = $plugin_form();
+    foreach ($tmp_form as &$tmp_form_item) {
+      $tmp_form_item['#process'] = array('ctools_dependent_process');
+      $tmp_form_item['#dependency'] = array('radio:plugins[type]' => array($key));
+      $tmp_form_item['#required'] = FALSE;
+    }
+    $form['plugins'][$key] = $tmp_form;
+  }
 
-  $form['link']['#value'] = l('Configure', 'admin/build/feeds_tamper/nojs/plugins/test', array(
-    'attributes' => array('class' => 'ctools-use-modal')));
+  $form['add_plugin'] = array(
+    '#type' => 'button',
+    '#value' => 'Add',
+  );
+
+  $data = isset($settings['plugins']) ? $settings['plugins'] : array();
+  $form['list']['#tree'] = TRUE;
+  $form['list']['#theme'] = 'feeds_tamper_list_sort_form';
+  foreach ($data as $key => $title) {
+    $t = array_keys($title);
+    $title = $t[0];
+    $form['list'][$key]['title'] = array('#value' => $title);
+    $form['list'][$key]['sort'] = array('#type' => 'weight', '#delta' => count($data), '#default_value' => $key);
+  }
 }
 
 /**
@@ -100,6 +102,9 @@ function feeds_tamper_ctools_export_ui_form_submit($form, &$form_state) {
 }
 
 function theme_feeds_tamper_list_sort_form($form) {
+  if (count(element_children($form)) == 0) {
+    return;
+  }
   drupal_add_tabledrag('feeds-tamper-sort', 'order', 'sibling', 'sort');
   $header = array('', 'title', 'sort');
   foreach (element_children($form) as $key) {
@@ -115,4 +120,23 @@ function theme_feeds_tamper_list_sort_form($form) {
   $output = theme('table', $header, $rows, array('id' => 'feeds-tamper-sort'));
   $output .= drupal_render($form);
   return $output;
+}
+
+function feeds_tamper_parse_mappers($importer_name) {
+  $mappings_ = feeds_importer($importer_name)->processor->getMappings();
+  $mappings = array();
+  foreach ($mappings_ as $mapping) {
+    $mappings[$mapping['source']] = $mapping['target'];
+  }
+  return $mappings;
+}
+
+function feeds_tamper_ctools_export_ui_form_validate(&$form, &$form_state) {
+  $plugins = $form_state['values']['plugins'];
+  $type = $plugins['type'];
+  $values = $plugins[$type];
+  if (!isset($form_state['item']->feeds_tamper_wrapper)) {
+    $form_state['item']->feeds_tamper_wrapper = array();
+  }
+  $form_state['item']->feeds_tamper_wrapper['plugins'][] = array($type => $values);
 }

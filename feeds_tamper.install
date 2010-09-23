@@ -48,6 +48,7 @@ function feeds_tamper_schema() {
         'type' => 'text',
         'size' => 'big',
         'description' => 'A serialized array of Feeds Tamper options.',
+        'serialize' => TRUE,
       ),
     ),
     'primary key' => array('pid'),

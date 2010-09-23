@@ -5,10 +5,9 @@
  * Implementation of hook_menu().
  */
 function feeds_tamper_menu() {
-  $items = array();
-  $items['admin/build/feeds_tamper/%ctools_js/plugins/%plugin'] = array(
-    'page callback' => 'feeds_tamper_modal',
-    'page arguments' => array(3),
+  $items['admin/build/feeds_tamper/%ctools_js/importer/%'] = array(
+    'page callback' => 'feeds_tamper_importer_handler',
+    'page arguments' => array(3, 5),
     'access arguments' => array('administer feeds tamper'),
     //'file' => 'feeds_tamper.admin.inc',
     //'type' => MENU_NORMAL_ITEM,
@@ -33,6 +32,9 @@ function feeds_tamper_ctools_plugin_directory($module, $plugin) {
   if ($module == 'ctools' && $plugin == 'export_ui') {
     return 'plugins/' . $plugin;
   }
+  if ($module == 'feeds_tamper') {
+    return 'plugins/';
+  }
 }
 
 /**
@@ -42,23 +44,18 @@ function feeds_tamper_ctools_plugin_directory($module, $plugin) {
  */
 function feeds_tamper_ctools_plugin_plugins() {
   return array(
-    'cache' => TRUE,
-    'use hooks' => TRUE,
+    'cache' => FALSE,
+    'use hook' => FALSE,
   );
 }
 
-/**
- * Implementation of hook_feeds_tamper_plugins().
- */
-function feeds_tamper_feeds_tamper_plugins() {
-  module_load_include('inc', 'feeds_tamper', 'feeds_tamper.plugins');
-  return _feeds_tamper_feeds_tamper_plugins();
-}
-
-/**
- * @defgroup plugins Plugin functions
- * @{
- */
+///**
+// * Implementation of hook_feeds_tamper_plugins().
+// */
+//function feeds_tamper_feeds_tamper_plugins() {
+//  module_load_include('inc', 'feeds_tamper', 'feeds_tamper.plugins');
+//  return _feeds_tamper_feeds_tamper_plugins();
+//}
 
 /**
  * Gets all available plugins.
@@ -70,12 +67,21 @@ function feeds_tamper_feeds_tamper_plugins() {
 function feeds_tamper_get_plugins() {
   ctools_include('plugins');
   $plugins = ctools_get_plugins('feeds_tamper', 'plugins');
-
-  // Sort plugins by name and return.
-  uasort($plugins, 'feeds_plugin_compare');
   return $plugins;
 }
 
+/**
+ * Gets a single plugin.
+ *
+ * @return
+ *   An array where the keys are the plugin keys and the values
+ *   are the plugin info arrays as defined in hook_feeds_tamper_plugins().
+ */
+function feeds_tamper_get_plugin($id) {
+  ctools_include('plugins');
+  $plugin = ctools_get_plugins('feeds_tamper', 'plugins', $id);
+  return $plugin;
+}
 /**
 * Implementation of hook_theme
 */
@@ -87,17 +93,27 @@ function feeds_tamper_theme() {
   );
 }
 
-function feeds_tamper_modal($js = FALSE, $plugin) {
-  $output = t('<p>Lorem ipsum dolor sit amet...</p>' . $plugin);
-  $title = t('Modal example');
+function feeds_tamper_importer_handler($js = FALSE, $plugin) {
+  $plugin = feeds_tamper_get_plugin($plugin);
   if ($js) {
     ctools_include('ajax');
     ctools_include('modal');
-    ctools_modal_render($title, $output);
-    // above command will exit().
+    $form_state = array(
+      'ajax' => TRUE,
+      'title' => t('Config'),
+      //'want form' => TRUE,
+      //'rerender' => TRUE,
+    );
+    $form = ctools_plugin_get_function($plugin, 'form');
+    $output = ctools_modal_form_wrapper($form, $form_state);
+    watchdog('feeds_tamper', var_export($output, TRUE));
+    if (empty($output)) {
+      ctools_modal_command_dismiss();
+    }
+
+    ctools_ajax_render($output);
   }
   else {
-    drupal_set_title($title);
-    return $output;
+    return drupal_get_form($plugin['form']);
   }
 }
