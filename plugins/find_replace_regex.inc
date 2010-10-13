@@ -12,7 +12,6 @@ function feeds_tamper_find_replace_regex_form() {
   $form['find_regex'] = array(
     '#type' => 'textfield',
     '#title' => t('REGEX to find'),
-    '#required' => TRUE,
     '#default_value' => '',
   );
   $form['replace_regex'] = array(

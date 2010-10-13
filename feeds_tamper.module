@@ -2,18 +2,67 @@
 // $Id$
 
 /**
- * Implementation of hook_menu().
+ * Implementation of hook_nodeapi().
  */
-function feeds_tamper_menu() {
-  $items['admin/build/feeds_tamper/%ctools_js/importer/%'] = array(
-    'page callback' => 'feeds_tamper_importer_handler',
-    'page arguments' => array(3, 5),
-    'access arguments' => array('administer feeds tamper'),
-    //'file' => 'feeds_tamper.admin.inc',
-    //'type' => MENU_NORMAL_ITEM,
-  );
+function feeds_tamper_nodeapi(&$node, $op, $form) {
+  if ($importer_id = feeds_get_importer_id($node->type)) {
+    switch ($op) {
+      case 'validate':
+      case 'presave':
+        break;
+      case 'insert':
+        $data = array();
+        foreach ($node->feeds_tamper as $source => $items) {
+          $data[$source] = array_keys(array_filter($items));
+        }
+        feeds_tamper_insert_record($data, $importer_id, $node->nid);
+        break;
+      case 'update':
+        $data = array();
+        foreach ($node->feeds_tamper as $source => $items) {
+          $data[$source] = array_keys(array_filter($items));
+        }
+        feeds_tamper_update_record($data, $importer_id, $node->nid);
+        break;
+      case 'delete':
+        feeds_tamper_delete_record($importer_id, $node->nid);
+        break;
+    }
+  }
+}
 
-  return $items;
+/**
+ * Implementation of hook_form_alter().
+ */
+function feeds_tamper_form_alter(&$form, &$form_state, $form_id) {
+  if ($form['#id'] == 'node-form') {
+    if ($importer_id = feeds_get_importer_id($form['type']['#value'])) {
+
+      $modifiers = feeds_tamper_modifiers_load_all();
+      $source = feeds_source($importer_id, empty($form['nid']['#value']) ? 0 : $form['nid']['#value']);
+      $mappings = $source->importer->processor->config['mappings'];
+      $attached = feeds_tamper_get_attached($importer_id, $form['nid']['#value']);
+
+      $form['feeds_tamper'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Feeds Tamper'),
+        '#tree' => TRUE,
+      );
+
+      $mods = array_keys($modifiers);
+      $mods = array_combine($mods, $mods);
+
+      foreach ($mappings as $mapping) {
+        $def = isset($attached[$mapping['source']]) ? $attached[$mapping['source']] : array();
+        $form['feeds_tamper'][$mapping['source']] = array(
+          '#type' => 'checkboxes',
+          '#default_value' => $def,
+          '#options' => $mods,
+          '#title' => $mapping['source'] . ' (' . $mapping['target'] . ')',
+        );
+      }
+    }
+  }
 }
 
 /**
@@ -49,14 +98,6 @@ function feeds_tamper_ctools_plugin_plugins() {
   );
 }
 
-///**
-// * Implementation of hook_feeds_tamper_plugins().
-// */
-//function feeds_tamper_feeds_tamper_plugins() {
-//  module_load_include('inc', 'feeds_tamper', 'feeds_tamper.plugins');
-//  return _feeds_tamper_feeds_tamper_plugins();
-//}
-
 /**
  * Gets all available plugins.
  *
@@ -66,8 +107,7 @@ function feeds_tamper_ctools_plugin_plugins() {
  */
 function feeds_tamper_get_plugins() {
   ctools_include('plugins');
-  $plugins = ctools_get_plugins('feeds_tamper', 'plugins');
-  return $plugins;
+  return ctools_get_plugins('feeds_tamper', 'plugins');
 }
 
 /**
@@ -79,9 +119,59 @@ function feeds_tamper_get_plugins() {
  */
 function feeds_tamper_get_plugin($id) {
   ctools_include('plugins');
-  $plugin = ctools_get_plugins('feeds_tamper', 'plugins', $id);
-  return $plugin;
+  return ctools_get_plugins('feeds_tamper', 'plugins', $id);
 }
+
+function feeds_tamper_modifiers_load_all($load_disabled = FALSE) {
+  $modifiers = array();
+  // This function can get called very early in install process through
+  // menu_router_rebuild(). Do not try to include CTools if not available.
+  if (function_exists('ctools_include')) {
+    ctools_include('export');
+    $configs = ctools_export_load_object('feeds_tamper', 'all');
+    foreach ($configs as $key => $config) {
+      if (!empty($config->id) && ($load_disabled || empty($config->disabled))) {
+        $modifiers[$key] = $config;
+      }
+    }
+  }
+  return $modifiers;
+}
+
+function feeds_tamper_modifiers_load($id) {
+  $t = ctools_export_load_object('feeds_tamper', 'names', array($id));
+  return $t[$id];
+}
+
+function feeds_tamper_get_attached($importer_id, $nid = 0) {
+  $query = db_query("SELECT data FROM {feeds_tamper_attached} WHERE importer = '%s' AND nid = %d", $importer_id, $nid);
+
+  if ($result = db_fetch_object($query)) {
+    return unserialize($result->data);
+  }
+  return array();
+}
+
+function feeds_tamper_insert_record($data, $importer_id, $nid = 0) {
+  $obj = new stdClass();
+  $obj->importer = $importer_id;
+  $obj->nid = $nid;
+  $obj->data = $data;
+  return drupal_write_record('feeds_tamper_attached', $obj);
+}
+
+function feeds_tamper_update_record($data, $importer_id, $nid = 0) {
+  $obj = new stdClass();
+  $obj->importer = $importer_id;
+  $obj->nid = $nid;
+  $obj->data = $data;
+  return drupal_write_record('feeds_tamper_attached', $obj, array('importer', 'nid'));
+}
+
+function feeds_tamper_delete_record($importer_id, $nid = 0) {
+  return db_query("DELETE FROM {feeds_tamper_attached} WHERE importer = '%s' AND nid = %d", $importer_id, $nid);
+}
+
 /**
 * Implementation of hook_theme
 */
@@ -93,27 +183,30 @@ function feeds_tamper_theme() {
   );
 }
 
-function feeds_tamper_importer_handler($js = FALSE, $plugin) {
-  $plugin = feeds_tamper_get_plugin($plugin);
-  if ($js) {
-    ctools_include('ajax');
-    ctools_include('modal');
-    $form_state = array(
-      'ajax' => TRUE,
-      'title' => t('Config'),
-      //'want form' => TRUE,
-      //'rerender' => TRUE,
-    );
-    $form = ctools_plugin_get_function($plugin, 'form');
-    $output = ctools_modal_form_wrapper($form, $form_state);
-    watchdog('feeds_tamper', var_export($output, TRUE));
-    if (empty($output)) {
-      ctools_modal_command_dismiss();
-    }
 
-    ctools_ajax_render($output);
+function feeds_tamper_feeds_after_parse(FeedsImporter $importer, FeedsSource $source) {
+  $node = $source->batch->feedNode();
+  $nid = $node ? $node->nid : 0;
+  $modifiers = feeds_tamper_get_attached($importer->id, $nid);
+  foreach ($source->batch->items as &$item) {
+    foreach ($modifiers as $field => $tampers) {
+      foreach ($tampers as $tamper) {
+        $instance = feeds_tamper_modifiers_load($tamper);
+        foreach ($instance->feeds_tamper_wrapper as $i) {
+          foreach ($i as $plugin => $args) {
+            $plugin = feeds_tamper_get_plugin($plugin);
+            if (is_array($item[$field])) {
+              foreach ($item[$field] as $k => $t) {
+                $plugin['callback']($item, $item[$field][$k], $args);
+              }
+            }
+            else {
+              $plugin['callback']($item, $item[$field], $args);
+            }
+          }
+        }
+      }
+    }
   }
-  else {
-    return drupal_get_form($plugin['form']);
-  }
+  $source->batch->items = array_filter($source->batch->items);
 }
