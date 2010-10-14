@@ -2,6 +2,36 @@
 // $Id$
 
 /**
+* Implementation of hook_feeds_after_parse().
+*
+* This is the meat of the whole deal.  After every Feeds run, before going into
+* processing, this gets called and modifies the data based on the configuration.
+*/
+function feeds_tamper_feeds_after_parse(FeedsImporter $importer, FeedsSource $source) {
+  $node = $source->batch->feedNode();
+  $nid = $node ? $node->nid : 0;
+  $modifiers = feeds_tamper_get_attached($importer->id, $nid);
+  foreach ($source->batch->items as &$item) {
+    foreach ($modifiers as $field => $tampers) {
+      foreach ($tampers as $tamper) {
+        $instance = feeds_tamper_modifiers_load($tamper);
+        foreach ($instance->feeds_tamper_wrapper as $i) {
+          foreach ($i as $plugin => $args) {
+            $plugin = feeds_tamper_get_plugin($plugin);
+            $plugin['callback']($source, $item, $item[$field], $args);
+          }
+        }
+      }
+    }
+  }
+  $source->batch->items = array_filter($source->batch->items);
+}
+
+/**
+ * Drupal hooks.
+ */
+
+/**
  * Implementation of hook_nodeapi().
  */
 function feeds_tamper_nodeapi(&$node, $op, $form) {
@@ -66,6 +96,115 @@ function feeds_tamper_form_alter(&$form, &$form_state, $form_id) {
 }
 
 /**
+* Implementation of hook_theme().
+*/
+function feeds_tamper_theme() {
+  return array(
+    'feeds_tamper_list_sort_form' => array(
+      'arguments' => array('form' => NULL),
+    ),
+  );
+}
+
+/**
+ * Feeds Tamper api functions.
+ */
+
+/**
+ * Load all modifiers.
+ */
+function feeds_tamper_modifiers_load_all($load_disabled = FALSE) {
+  $modifiers = array();
+  if (function_exists('ctools_include')) {
+    ctools_include('export');
+    $configs = ctools_export_load_object('feeds_tamper', 'all');
+    foreach ($configs as $key => $config) {
+      if (!empty($config->id) && ($load_disabled || empty($config->disabled))) {
+        $modifiers[$key] = $config;
+      }
+    }
+  }
+  return $modifiers;
+}
+
+/**
+ * Load a modifier by id.
+ */
+function feeds_tamper_modifiers_load($id) {
+  $t = ctools_export_load_object('feeds_tamper', 'names', array($id));
+  return $t[$id];
+}
+
+/**
+ * Get the modifiers attached to a feed source.
+ */
+function feeds_tamper_get_attached($importer_id, $nid = 0) {
+  $query = db_query("SELECT data FROM {feeds_tamper_attached} WHERE importer = '%s' AND nid = %d", $importer_id, $nid);
+
+  if ($result = db_fetch_object($query)) {
+    return unserialize($result->data);
+  }
+  return array();
+}
+
+/**
+ * Inserts a record.
+ */
+function feeds_tamper_insert_record($data, $importer_id, $nid = 0) {
+  $obj = new stdClass();
+  $obj->importer = $importer_id;
+  $obj->nid = $nid;
+  $obj->data = $data;
+  return drupal_write_record('feeds_tamper_attached', $obj);
+}
+
+/**
+ * Updates a record.
+ */
+function feeds_tamper_update_record($data, $importer_id, $nid = 0) {
+  $obj = new stdClass();
+  $obj->importer = $importer_id;
+  $obj->nid = $nid;
+  $obj->data = $data;
+  return drupal_write_record('feeds_tamper_attached', $obj, array('importer', 'nid'));
+}
+
+/**
+ * Deletes a record.
+ */
+function feeds_tamper_delete_record($importer_id, $nid = 0) {
+  return db_query("DELETE FROM {feeds_tamper_attached} WHERE importer = '%s' AND nid = %d", $importer_id, $nid);
+}
+
+/**
+ * Gets all available plugins.
+ *
+ * @return
+ *   An array where the keys are the plugin keys and the values
+ *   are the plugin info arrays as defined in hook_feeds_tamper_plugins().
+ */
+function feeds_tamper_get_plugins() {
+  ctools_include('plugins');
+  return ctools_get_plugins('feeds_tamper', 'plugins');
+}
+
+/**
+ * Gets a single plugin.
+ *
+ * @return
+ *   An array where the keys are the plugin keys and the values
+ *   are the plugin info arrays as defined in hook_feeds_tamper_plugins().
+ */
+function feeds_tamper_get_plugin($id) {
+  ctools_include('plugins');
+  return ctools_get_plugins('feeds_tamper', 'plugins', $id);
+}
+
+/**
+ * CTools stuff.
+ */
+
+/**
  * Implementation of hook_ctools_plugin_api().
  */
 function feeds_tamper_ctools_plugin_api($owner, $api) {
@@ -96,117 +235,4 @@ function feeds_tamper_ctools_plugin_plugins() {
     'cache' => FALSE,
     'use hook' => FALSE,
   );
-}
-
-/**
- * Gets all available plugins.
- *
- * @return
- *   An array where the keys are the plugin keys and the values
- *   are the plugin info arrays as defined in hook_feeds_tamper_plugins().
- */
-function feeds_tamper_get_plugins() {
-  ctools_include('plugins');
-  return ctools_get_plugins('feeds_tamper', 'plugins');
-}
-
-/**
- * Gets a single plugin.
- *
- * @return
- *   An array where the keys are the plugin keys and the values
- *   are the plugin info arrays as defined in hook_feeds_tamper_plugins().
- */
-function feeds_tamper_get_plugin($id) {
-  ctools_include('plugins');
-  return ctools_get_plugins('feeds_tamper', 'plugins', $id);
-}
-
-function feeds_tamper_modifiers_load_all($load_disabled = FALSE) {
-  $modifiers = array();
-  // This function can get called very early in install process through
-  // menu_router_rebuild(). Do not try to include CTools if not available.
-  if (function_exists('ctools_include')) {
-    ctools_include('export');
-    $configs = ctools_export_load_object('feeds_tamper', 'all');
-    foreach ($configs as $key => $config) {
-      if (!empty($config->id) && ($load_disabled || empty($config->disabled))) {
-        $modifiers[$key] = $config;
-      }
-    }
-  }
-  return $modifiers;
-}
-
-function feeds_tamper_modifiers_load($id) {
-  $t = ctools_export_load_object('feeds_tamper', 'names', array($id));
-  return $t[$id];
-}
-
-function feeds_tamper_get_attached($importer_id, $nid = 0) {
-  $query = db_query("SELECT data FROM {feeds_tamper_attached} WHERE importer = '%s' AND nid = %d", $importer_id, $nid);
-
-  if ($result = db_fetch_object($query)) {
-    return unserialize($result->data);
-  }
-  return array();
-}
-
-function feeds_tamper_insert_record($data, $importer_id, $nid = 0) {
-  $obj = new stdClass();
-  $obj->importer = $importer_id;
-  $obj->nid = $nid;
-  $obj->data = $data;
-  return drupal_write_record('feeds_tamper_attached', $obj);
-}
-
-function feeds_tamper_update_record($data, $importer_id, $nid = 0) {
-  $obj = new stdClass();
-  $obj->importer = $importer_id;
-  $obj->nid = $nid;
-  $obj->data = $data;
-  return drupal_write_record('feeds_tamper_attached', $obj, array('importer', 'nid'));
-}
-
-function feeds_tamper_delete_record($importer_id, $nid = 0) {
-  return db_query("DELETE FROM {feeds_tamper_attached} WHERE importer = '%s' AND nid = %d", $importer_id, $nid);
-}
-
-/**
-* Implementation of hook_theme
-*/
-function feeds_tamper_theme() {
-  return array(
-    'feeds_tamper_list_sort_form' => array(
-      'arguments' => array('form' => NULL),
-    ),
-  );
-}
-
-
-function feeds_tamper_feeds_after_parse(FeedsImporter $importer, FeedsSource $source) {
-  $node = $source->batch->feedNode();
-  $nid = $node ? $node->nid : 0;
-  $modifiers = feeds_tamper_get_attached($importer->id, $nid);
-  foreach ($source->batch->items as &$item) {
-    foreach ($modifiers as $field => $tampers) {
-      foreach ($tampers as $tamper) {
-        $instance = feeds_tamper_modifiers_load($tamper);
-        foreach ($instance->feeds_tamper_wrapper as $i) {
-          foreach ($i as $plugin => $args) {
-            $plugin = feeds_tamper_get_plugin($plugin);
-            if (is_array($item[$field])) {
-              foreach ($item[$field] as $k => $t) {
-                $plugin['callback']($item, $item[$field][$k], $args);
-              }
-            }
-            else {
-              $plugin['callback']($item, $item[$field], $args);
-            }
-          }
-        }
-      }
-    }
-  }
-  $source->batch->items = array_filter($source->batch->items);
 }

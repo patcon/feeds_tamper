@@ -19,19 +19,20 @@ function feeds_tamper_keyword_filter_form() {
   $form['word_boundaries'] = array(
     '#type' => 'checkbox',
     '#title' => t('Respect word boundaries'),
-    '#default_value' => TRUE,
+    '#default_value' => 1,
+    '#attributes' => array('checked' => 'checked'),
   );
 
   $form['case_sensetive'] = array(
     '#type' => 'checkbox',
     '#title' => t('Case sensetive'),
-    '#default_value' => FALSE,
+    '#default_value' => 0,
   );
 
   return $form;
 }
 
-function feeds_tamper_keyword_filter_callback(&$item, &$text, $values) {
+function feeds_tamper_keyword_filter_callback($source, &$item, &$field, $values) {
   if ($values['word_boundaries']) {
     $regex = '/\b' . $values['word'] . '\b/';
   }

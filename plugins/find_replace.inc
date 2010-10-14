@@ -25,6 +25,6 @@ function feeds_tamper_find_replace_form() {
   return $form;
 }
 
-function feeds_tamper_find_replace_callback(&$item, &$text, $values) {
+function feeds_tamper_find_replace_callback($source, &$item, &$field, $values) {
   $text = str_replace($values['find'], $values['replace'], $text);
 }

@@ -15,10 +15,12 @@ $plugin = array(
   'title plural'          => t('Tamper sets'),
   'title plural proper'   => t('Tamper sets'),
   'use wizard' => TRUE,
+  'show trail' => FALSE,
+  'free trail' => FALSE,
   'form info' => array(
     'add order' => array(
-      'create' => t('Step 1: Create Wombat'),
-      'deploy' => t('Step 2: Deploy Wombat'),
+      'create' => t('Set Name'),
+      'deploy' => t('Add plugins'),
     ),
     'edit order' => array(
       'deploy' => t('Edit'),
@@ -27,22 +29,28 @@ $plugin = array(
       'deploy' => array('form id' => 'feeds_tamper_add_plugin_form'),
     ),
   ),
-  //'handler' => array(
-  //  'class' => 'feeds_tamper_ui',
-  //  'parent' => 'ctools_export_ui',
-  //),
 );
 
 function feeds_tamper_add_plugin_form(&$form, &$form_state) {
+
   $preset = $form_state['item'];
 
+  if ($list = $form_state['function args'][1]['list']) {
+    $current_order = $preset->feeds_tamper_wrapper;
+    $preset->feeds_tamper_wrapper = array();
+    foreach ($list as $k => $p) {
+      $preset->feeds_tamper_wrapper[] = $current_order[$k];
+    }
+  }
+
   if ($form_state['function args'][1]['op'] == 'Add') {
-    $adding = TRUE;
     $plugin_args = $form_state['function args'][1];
     $plugin = $form_state['function args'][1]['feeds_tamper_plugin'];
     unset($plugin_args['feeds_tamper_plugin'], $plugin_args['op'], $plugin_args['form_build_id'], $plugin_args['form_token'], $plugin_args['form_id']);
+    unset($plugin_args['list']);
     $preset->feeds_tamper_wrapper[] = array($plugin => $plugin_args);
   }
+
   $settings = $preset->feeds_tamper_wrapper;
   $feeds_tamper_plugins = feeds_tamper_get_plugins();
   $options = array();
@@ -65,8 +73,9 @@ function feeds_tamper_add_plugin_form(&$form, &$form_state) {
 
   $form['add_button'] = array(
     '#type' => 'submit',
-    '#value' => 'asfd',
-    '#attributes' => array('class' => 'ctools-use-ajax ctools-auto-submit-click'),
+    '#value' => '',
+    '#attributes' => array('class' => 'ctools-use-ajax ctools-auto-submit-click',
+                           'style' => 'display:none;'),
   );
 
   if ($plugin != '--') {
@@ -88,14 +97,29 @@ function feeds_tamper_add_plugin_form(&$form, &$form_state) {
   ctools_add_js('auto-submit');
 
   $data = isset($settings) ? $settings : array();
+
   $form['list']['#tree'] = TRUE;
   $form['list']['#theme'] = 'feeds_tamper_list_sort_form';
 
-  foreach ($data as $key => $title) {
-    $t = array_keys($title);
-    $title = $t[0];
-    $form['list'][$key]['title'] = array('#value' => $title);
-    $form['list'][$key]['sort'] = array('#type' => 'weight', '#delta' => count($data), '#default_value' => $key);
+  foreach ($data as $key => $item) {
+    $title = array_keys($item);
+    $title = $title[0];
+    $form['list'][$key] = array(
+      'title' => array(
+        '#type' => 'markup',
+        '#value' => $title,
+      ),
+      'sort' => array(
+        '#type' => 'weight',
+        '#delta' => count($data),
+        '#default_value' =>$key,
+        '#attributes' => array('class' => 'feeds-tamper-sort-class')
+      ),
+      'plugin' => array(
+        '#type' => 'hidden',
+        '#value' => $title,
+      ),
+    );
   }
 }
 
@@ -110,17 +134,14 @@ function theme_feeds_tamper_list_sort_form($form) {
   if (count(element_children($form)) == 0) {
     return;
   }
-  drupal_add_tabledrag('feeds-tamper-sort', 'order', 'sibling', 'sort');
-  $header = array('', 'title', 'sort');
+  drupal_add_tabledrag('feeds-tamper-sort', 'order', 'sibling', 'feeds-tamper-sort-class');
+  $header = array('', 'title', '');
   foreach (element_children($form) as $key) {
-    // Add class to group weight fields for drag and drop.
-    $form[$key]['sort']['#attributes']['class'] = 'sort';
 
-    $row = array(''); //This is important. We need to start with an empty element for the drag handle.
-
+    $row = array('');
     $row[] = drupal_render($form[$key]['title']);
     $row[] = drupal_render($form[$key]['sort']);
-    $rows[] = array('data' => $row, 'class' => 'draggable'); //note the difference between $row and $rows
+    $rows[] = array('data' => $row, 'class' => 'draggable');
   }
   $output = theme('table', $header, $rows, array('id' => 'feeds-tamper-sort'));
   $output .= drupal_render($form);
