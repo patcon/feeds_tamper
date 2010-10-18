@@ -7,7 +7,7 @@ $plugin = array(
   'name' => 'Explode',
 );
 
-function feeds_tamper_explode_form() {
+function feeds_tamper_explode_form($settings) {
   $form = array();
 
   $form['separator'] = array(
@@ -21,7 +21,7 @@ function feeds_tamper_explode_form() {
   return $form;
 }
 
-function feeds_tamper_explode_callback($source, &$item, &$field, $values) {
+function feeds_tamper_explode_callback($source, &$key, &$field, $values) {
   if (!is_array($field)) {
     $separator = str_replace(array('%s', '%t', '%n'), array(' ', "\t", "\n"), $values['separator']);
     $field = explode($separator, $field);
