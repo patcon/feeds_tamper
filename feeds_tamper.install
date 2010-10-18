@@ -14,15 +14,15 @@ function feeds_tamper_install() {
 function feeds_tamper_schema() {
   $schema = array();
 
-  $schema['feeds_tamper'] = array(
-    'description' => 'Table storing tamper definitions.',
+  $schema['feeds_tamper_instance'] = array(
+    'description' => 'Table storing tamper instances.',
     'export' => array(
       'key' => 'id',
-      'identifier' => 'tamper', // Exports will be as $preset
-      'default hook' => 'feeds_tamper_default',  // Function hook name.
+      'identifier' => 'tamper_instance', // Exports will be as $tamper_instalce
+      'default hook' => 'feeds_tamper_default_instances',  // Function hook name.
       'api' => array(
         'owner' => 'feeds_tamper',
-        'api' => 'feeds_tamper_default',  // Base name for api include files.
+        'api' => 'feeds_tamper_default_instances',  // Base name for api include files.
         'minimum_version' => 1,
         'current_version' => 1,
       ),
@@ -33,17 +33,19 @@ function feeds_tamper_schema() {
         'length' => 128,
         'not null' => TRUE,
         'default' => '',
-        'description' => 'Id of the tamper object.',
+        'description' => 'Id of the tamper instance.',
       ),
-      'description' => array(
+      'plugin_id' => array(
         'type' => 'varchar',
-        'length' => '255',
-        'description' => 'A human readable name of a modifier.',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Id of the tamper plugin.',
       ),
-      'feeds_tamper_wrapper' => array(
+      'settings' => array(
         'type' => 'text',
         'size' => 'big',
-        'description' => 'A serialized array of Feeds Tamper options.',
+        'description' => 'A serialized array of options for a Feeds Tamper plugin.',
         'serialize' => TRUE,
       ),
     ),
@@ -51,26 +53,42 @@ function feeds_tamper_schema() {
   );
 
   $schema['feeds_tamper_attached'] = array(
+    'description' => 'Table storing instances attached to a Feed Source field.',
     'fields' => array(
-      'importer' => array(
+      'importer_id' => array(
         'type'     => 'varchar',
         'length'   => 128,
         'not null' => TRUE,
         'default'  => '',
+        'description' => 'The id of the Feeds Importer.',
       ),
       'nid' => array(
         'type'     => 'int',
         'not null' => TRUE,
         'default'  => 0,
         'unsigned' => TRUE,
+        'description' => 'The nid of the node the Importer is attached to. 0 if it\'s a standalone field.',
       ),
-      'data' => array(
-        'type'      => 'text',
-        'not null'  => FALSE,
-        'serialize' => TRUE,
+      'source_field' => array(
+        'type'     => 'varchar',
+        'length'   => 128,
+        'not null' => TRUE,
+        'default'  => '',
+        'description' => 'The Feeds source field that the plugin is attached to.',
+      ),
+      'weight' => array(
+        'type'     => 'int',
+        'not null' => TRUE,
+        'default'  => 0,
+        'description' => 'The weight of the plugin instance, determines the order the plugins will be executed in.',
+      ),
+      'instance_id' => array(
+        'type'     => 'varchar',
+        'length'   => 128,
+        'not null' => TRUE,
+        'default'  => '',
       ),
     ),
-    'primary key' => array('importer', 'nid'),
   );
 
   return $schema;
