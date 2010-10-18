@@ -23,7 +23,7 @@ $plugin = array(
 
 function feeds_tamper_add_plugin_form(&$form, &$form_state) {
   $instance = $form_state['item'];
-  $instance->settings = $instance->settings ?: array();
+  $instance->settings = $instance->settings ? $instance->settings : array();
   $feeds_tamper_plugins = feeds_tamper_get_plugins();
 
 
@@ -31,7 +31,7 @@ function feeds_tamper_add_plugin_form(&$form, &$form_state) {
   foreach ($feeds_tamper_plugins as $plugin_id => $plugin) {
     $plugins[$plugin_id] = $plugin['name'];
   }
-  $plugin = $instance->plugin_id ?: key($plugins);
+  $plugin = $instance->plugin_id ? $instance->plugin_id : key($plugins);
 
   $form['plugin_id'] = array(
     '#title' => 'The plugin to add',
