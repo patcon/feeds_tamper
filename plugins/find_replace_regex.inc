@@ -35,7 +35,7 @@ function feeds_tamper_find_replace_regex_form($settings) {
 function feeds_tamper_find_replace_regex_callback($source, &$key, &$field, $values) {
   if (!is_array($field)) {
     $limit = (int) trim($values['limit']);
-    $limit = $limit ?: 0;
+    $limit = $limit ? $limit : 0;
     $field = preg_replace($values['find_regex'], $values['replace_regex'], $field, $limit);
   }
 }
