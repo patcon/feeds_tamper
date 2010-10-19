@@ -144,45 +144,11 @@ function _feeds_tamper_form_alter($importer_id, $nid, &$form) {
  */
 function feeds_tamper_feeds_node_processor_targets_alter(&$targets, $content_type) {
   $targets['feeds_tamper_store'] = array(
-    'name' => 'Store',
-    'description' => t('A field that stores the source data temporarily.'),
+    'name' => 'Rewrite Store',
+    'description' => t('A field that stores the source data temporarily so that it can be used with the Feeds Tamper rewrite plugin.'),
   );
 }
 
-/**
- * Implementation of hook_feeds_parser_sources_alter().
- */
-function feeds_tamper_feeds_parser_sources_alter(&$sources, $content_type) {
-  $sources['tamper:0'] = array(
-    'name' => 'Tamper Source',
-    'description' => t('A field that can be rewritten usings tokens.'),
-  );
-}
-
-/**
- * Implementation of hook_form_FORM_ID_alter().
- *
- * This is an interesting bit of work. Each source name has to be unique,
- * but we have no idea how many to create with getMappingSources() because we
- * don't know how many targets there are going to be.
- *
- * The solution is to keep track in the form how many have been added.
- */
-function feeds_tamper_form_feeds_ui_mapping_form_alter(&$form, &$form_state) {
-  $newest_token = array();
-  foreach ($form['#mappings'] as $mapping) {
-    if (strpos($mapping['source'], 'tamper:') === 0) {
-      $newest_token = $mapping;
-    }
-  }
-  if (!empty($newest_token)) {
-    list($a, $count) = explode(':', $newest_token['source']);
-    $default_source = $a . ':' . '0';
-    $label = $form['source']['#options'][$default_source];
-    unset($form['source']['#options'][$default_source]);
-    $form['source']['#options'][$a . ':' . ++$count] = $label;
-  }
-}
 /**
  * Implementation of hook_form_FORM_ID_alter().
  */
