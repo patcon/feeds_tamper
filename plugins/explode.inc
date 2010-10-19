@@ -4,6 +4,7 @@
 $plugin = array(
   'form' => 'feeds_tamper_explode_form',
   'callback' => 'feeds_tamper_explode_callback',
+  'validate' => 'feeds_tamper_explode_validate',
   'name' => 'Explode',
 );
 
@@ -21,9 +22,12 @@ function feeds_tamper_explode_form($settings) {
   return $form;
 }
 
-function feeds_tamper_explode_callback($source, &$key, &$field, $values) {
+function feeds_tamper_explode_validate(&$values) {
+  $values['real_separator'] = str_replace(array('%s', '%t', '%n'), array(' ', "\t", "\n"), $values['separator']);
+}
+
+function feeds_tamper_explode_callback($source, $key, &$field, $values) {
   if (!is_array($field)) {
-    $separator = str_replace(array('%s', '%t', '%n'), array(' ', "\t", "\n"), $values['separator']);
-    $field = explode($separator, $field);
+    $field = explode($values['real_separator'], $field);
   }
 }

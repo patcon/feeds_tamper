@@ -21,16 +21,20 @@ function feeds_tamper_absolute_url_form($settings) {
  * @todo
  *   Make this not suck.
  */
-function feeds_tamper_absolute_url_callback($source, &$key, &$field, $values) {
-  $base_url = rtrim($source->batch->getLink(), '/') . '/';
-  $regex = '/<.*(href|src)(\s*=\s*)(\'|")(.*)("|\').*>/';
-  preg_match_all($regex, $item, $matches, PREG_SET_ORDER);
-  foreach ($matches as $match) {
-    if (!strpos($match[4], 'http://') === 0 && !strpos($match[4], 'https://') === 0) {
-      $find_text = implode('', $match);
-      $match[4] = $base_url . ltrim($match[4], '/');
-      $replace_text = implode('', $match);
-      $field = str_replace($find_text, $replace_text, $field);
+function feeds_tamper_absolute_url_callback($source, $key, &$field, $values) {
+  if (!is_array($field)) {
+    static $base_url = NULL;
+    if (!$base_url) {
+      $base_url = rtrim($source->batch->getLink(), '/') . '/';
+    }
+    preg_match_all('/<.*(href|src)(\s*=\s*)(\'|")(.*)("|\').*>/', $field, $matches, PREG_SET_ORDER);
+    foreach ($matches as $match) {
+      if (!stripos($match[4], 'http://') === 0 && !stripos($match[4], 'https://') === 0) {
+        $find_text = implode('', $match);
+        $match[4] = $base_url . ltrim($match[4], '/');
+        $replace_text = implode('', $match);
+        $field = str_replace($find_text, $replace_text, $field);
+      }
     }
   }
 }

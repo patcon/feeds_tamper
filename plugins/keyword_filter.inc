@@ -4,48 +4,88 @@
 $plugin = array(
   'form' => 'feeds_tamper_keyword_filter_form',
   'callback' => 'feeds_tamper_keyword_filter_callback',
+  'validate' => 'feeds_tamper_keyword_filter_validate',
   'name' => 'Keyword Filter',
 );
 
 function feeds_tamper_keyword_filter_form($settings) {
+
   $form = array();
 
-  $form['word'] = array(
-    '#type' => 'textfield',
+  $form['words'] = array(
+    '#type' => 'textarea',
     '#title' => t('Word to filter on'),
-    '#default_value' => isset($settings['word']) ? $settings['word'] : '',
+    '#default_value' => isset($settings['words']) ? $settings['words'] : '',
+    '#description' => t('A list of words that to appear in the text.'),
   );
 
   $form['word_boundaries'] = array(
     '#type' => 'checkbox',
     '#title' => t('Respect word boundaries'),
-    '#default_value' => isset($settings['word_boundaries']) ? $settings['word_boundaries'] : 1,
-    '#attributes' => array('checked' => 'checked'),
+    '#default_value' => isset($settings['word_boundaries']) ? $settings['word_boundaries'] : TRUE,
+    '#description' => t('If checked, then "book" will match "book" but not "bookcase".'),
   );
 
   $form['case_sensetive'] = array(
     '#type' => 'checkbox',
     '#title' => t('Case sensetive'),
-    '#default_value' => isset($settings['case_sensetive']) ? $settings['case_sensetive'] : 0,
+    '#default_value' => isset($settings['case_sensetive']) ? $settings['case_sensetive'] : FALSE,
+    '#description' => t('If checked, then "book" will match "book" but not "Book" or "BOOK".')
   );
 
   return $form;
 }
 
+function feeds_tamper_keyword_filter_validate(&$values) {
+  $values['word_list'] = explode("\n", $values['words']);
+  $values['word_list'] = array_map('trim', $values['word_list']);
+
+  $values['strpos'] = FALSE;
+  $values['stripos'] = FALSE;
+  $values['regex'] = FALSE;
+
+  if (!$values['word_boundaries'] && $values['case_sensetive']) {
+    $values['strpos'] = TRUE;
+    return;
+  }
+
+  if (!$values['word_boundaries'] && !$values['case_sensetive']) {
+    $values['stripos'] = TRUE;
+    return;
+  }
+  foreach ($values['word_list'] as &$word) {
+    $word = '/\b' . $word . '\b/';
+
+    if (!$values['case_sensetive']) {
+      $word .= 'i';
+    }
+  }
+  $values['regex'] = TRUE;
+}
+
 function feeds_tamper_keyword_filter_callback($source, $key, &$field, $values) {
-  if ($values['word_boundaries']) {
-    $regex = '/\b' . $values['word'] . '\b/';
-  }
-  else {
-    $regex = '/' . $values['word'] . '/';
-  }
-  if (!$values['case_sensetive']) {
-    $regex .= 'i';
-  }
-
-  $match = preg_match($regex, $field);
-
-  if ($match === 0) {
+  if (!is_array($field)) {
+    if ($values['regex']) {
+      foreach ($values['word_list'] as $word) {
+        if (preg_match($word, $field) > 0) {
+          return;
+        }
+      }
+    }
+    else if ($values['strpos']) {
+      foreach ($values['word_list'] as $word) {
+        if (strpos($field, $word) !== FALSE) {
+          return;
+        }
+      }
+    }
+    else {
+      foreach ($values['word_list'] as $word) {
+        if (stripos($field, $word) !== FALSE) {
+          return;
+        }
+      }
+    }
     unset($source->batch->items[$key]);
   }
 }

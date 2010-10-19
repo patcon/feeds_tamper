@@ -68,4 +68,9 @@ function feeds_tamper_add_plugin_form_submit(&$form, &$form_state) {
 }
 
 function feeds_tamper_add_plugin_form_validate(&$form, &$form_state) {
+  $plugin_id = $form_state['values']['plugin_id'];
+  $plugin = feeds_tamper_get_plugin($plugin_id);
+  if (isset($plugin['validate'])) {
+    $plugin['validate']($form_state['values'][$plugin_id]);
+  }
 }

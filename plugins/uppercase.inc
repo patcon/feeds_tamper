@@ -18,13 +18,12 @@ function feeds_tamper_uppercase_form($settings) {
 }
 
 function feeds_tamper_uppercase_callback($source, $key, &$field, $values) {
-  if (!is_array($field)) {
-    $field = strtoupper($field);
-    return;
-  }
-  else {
+  if (is_array($field)) {
     foreach ($field as &$f) {
       $f = strtoupper($f);
     }
+  }
+  else {
+    $field = strtoupper($field);
   }
 }

@@ -4,6 +4,7 @@
 $plugin = array(
   'form' => 'feeds_tamper_find_replace_regex_form',
   'callback' => 'feeds_tamper_find_replace_regex_callback',
+  'validate' => 'feeds_tamper_find_replace_regex_validate',
   'name' => 'Find Replace REGEX',
 );
 
@@ -14,12 +15,14 @@ function feeds_tamper_find_replace_regex_form($settings) {
     '#type' => 'textfield',
     '#title' => t('REGEX to find'),
     '#default_value' => isset($settings['find']) ? $settings['find'] : '',
+    '#description' => t(check_plain('A regular expression in the form: /<your regex here>/')),
   );
 
   $form['replace'] = array(
     '#type' => 'textfield',
     '#title' => t('Replacement pattern'),
     '#default_value' => isset($settings['replace']) ? $settings['replace'] : '',
+    '#description' => t('The replacement pattern.'),
   );
 
   $form['limit'] = array(
@@ -32,10 +35,15 @@ function feeds_tamper_find_replace_regex_form($settings) {
   return $form;
 }
 
-function feeds_tamper_find_replace_regex_callback($source, &$key, &$field, $values) {
-  if (!is_array($field)) {
-    $limit = (int) trim($values['limit']);
-    $limit = $limit ? $limit : 0;
-    $field = preg_replace($values['find_regex'], $values['replace_regex'], $field, $limit);
+function feeds_tamper_find_replace_regex_validate(&$values) {
+  // test the regex
+  $test = @preg_replace($values['find'], '', 'asdfsadf');
+  if ($test === NULL) {
+    return form_set_error('find', 'Invalid regular expression.');
   }
+  $values['limit'] = intval(trim($values['limit']));
+}
+
+function feeds_tamper_find_replace_regex_callback($source, $key, &$field, $values) {
+  $field = preg_replace($values['find'], $values['replace'], $field, $values['limit']);
 }

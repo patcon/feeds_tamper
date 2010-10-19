@@ -18,12 +18,12 @@ function feeds_tamper_lowercase_form($settings) {
 }
 
 function feeds_tamper_lowercase_callback($source, $key, &$field, $values) {
-  if (!is_array($field)) {
-    $field = strtolower($field);
-  }
-  else {
+  if (is_array($field)) {
     foreach ($field as &$f) {
       $f = strtolower($f);
     }
+  }
+  else {
+    $field = strtolower($field);
   }
 }
