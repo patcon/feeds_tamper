@@ -14,12 +14,25 @@ function feeds_tamper_feeds_after_parse(FeedsImporter $importer, FeedsSource $so
   if (empty($attached)) {
     return;
   }
-  foreach ($source->batch->items as $key => &$item) {
-    foreach ($attached as $source_field => $attached_instances) {
+  foreach ($source->batch->items as $item_key => &$item) {
+    foreach ($attached as $element_key => $attached_instances) {
       foreach ($attached_instances as $instance_) {
         $instance = feeds_tamper_load_instance($instance_['instance_id']);
         $plugin = feeds_tamper_get_plugin($instance->plugin_id);
-        $plugin['callback']($source, $key, $item[$source_field], $instance->settings);
+
+        if (is_array($item[$element_key]) && $plugin['multi'] == 'loop') {
+          foreach ($item[$element_key] as &$i) {
+            $plugin['callback']($source, $item_key, $element_key, $i, $instance->settings);
+          }
+        }
+
+        else if (is_array($item[$element_key]) && $plugin['multi'] == 'direct') {
+          $plugin['callback']($source, $item_key, $element_key, $item[$element_key], $instance->settings);
+        }
+
+        else if (!is_array($item[$element_key]) && $plugin['single'] != 'skip') {
+          $plugin['callback']($source, $item_key, $element_key, $item[$element_key], $instance->settings);
+        }
       }
     }
   }

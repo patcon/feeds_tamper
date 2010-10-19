@@ -2,10 +2,11 @@
 // $Id$
 
 $plugin = array(
-  'form' => 'feeds_tamper_find_replace_regex_form',
+  'form'     => 'feeds_tamper_find_replace_regex_form',
   'callback' => 'feeds_tamper_find_replace_regex_callback',
   'validate' => 'feeds_tamper_find_replace_regex_validate',
-  'name' => 'Find Replace REGEX',
+  'name'     => 'Find Replace REGEX',
+  'multi'    => 'direct',
 );
 
 function feeds_tamper_find_replace_regex_form($settings) {
@@ -44,6 +45,6 @@ function feeds_tamper_find_replace_regex_validate(&$values) {
   $values['limit'] = intval(trim($values['limit']));
 }
 
-function feeds_tamper_find_replace_regex_callback($source, $key, &$field, $values) {
+function feeds_tamper_find_replace_regex_callback($source, $item_key, $element_key, &$field, $values) {
   $field = preg_replace($values['find'], $values['replace'], $field, $values['limit']);
 }

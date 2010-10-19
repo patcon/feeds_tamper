@@ -2,10 +2,11 @@
 // $Id$
 
 $plugin = array(
-  'form' => 'feeds_tamper_keyword_filter_form',
+  'form'     => 'feeds_tamper_keyword_filter_form',
   'callback' => 'feeds_tamper_keyword_filter_callback',
   'validate' => 'feeds_tamper_keyword_filter_validate',
-  'name' => 'Keyword Filter',
+  'name'     => 'Keyword Filter',
+  'multi'    => 'skip',
 );
 
 function feeds_tamper_keyword_filter_form($settings) {
@@ -63,29 +64,27 @@ function feeds_tamper_keyword_filter_validate(&$values) {
   $values['regex'] = TRUE;
 }
 
-function feeds_tamper_keyword_filter_callback($source, $key, &$field, $values) {
-  if (!is_array($field)) {
-    if ($values['regex']) {
-      foreach ($values['word_list'] as $word) {
-        if (preg_match($word, $field) > 0) {
-          return;
-        }
+function feeds_tamper_keyword_filter_callback($source, $item_key, $element_key, &$field, $values) {
+  if ($values['regex']) {
+    foreach ($values['word_list'] as $word) {
+      if (preg_match($word, $field) > 0) {
+        return;
       }
     }
-    else if ($values['strpos']) {
-      foreach ($values['word_list'] as $word) {
-        if (strpos($field, $word) !== FALSE) {
-          return;
-        }
-      }
-    }
-    else {
-      foreach ($values['word_list'] as $word) {
-        if (stripos($field, $word) !== FALSE) {
-          return;
-        }
-      }
-    }
-    unset($source->batch->items[$key]);
   }
+  else if ($values['strpos']) {
+    foreach ($values['word_list'] as $word) {
+      if (strpos($field, $word) !== FALSE) {
+        return;
+      }
+    }
+  }
+  else {
+    foreach ($values['word_list'] as $word) {
+      if (stripos($field, $word) !== FALSE) {
+        return;
+      }
+    }
+  }
+  unset($source->batch->items[$item_key]);
 }

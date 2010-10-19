@@ -6,6 +6,7 @@ $plugin = array(
   'callback' => 'feeds_tamper_trim_callback',
   'validate' => 'feeds_tamper_trim_validate',
   'name' => 'Trim',
+  'multi' => 'loop',
 );
 
 function feeds_tamper_trim_form($settings) {
@@ -28,13 +29,6 @@ function feeds_tamper_trim_form($settings) {
   return $form;
 }
 
-function feeds_tamper_trim_callback($source, $key, &$field, $values) {
-  if (is_array($field)) {
-    foreach ($field as &$f) {
-      $f = $values['side']($f, $values['mask']);
-    }
-  }
-  else {
-    $field = $values['side']($field, $values['mask']);
-  }
+function feeds_tamper_trim_callback($source, $item_key, $element_key, &$field, $values) {
+  $field = $values['side']($field, $values['mask']);
 }

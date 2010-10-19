@@ -2,9 +2,10 @@
 // $Id$
 
 $plugin = array(
-  'form' => 'feeds_tamper_lowercase_form',
+  'form'     => 'feeds_tamper_lowercase_form',
   'callback' => 'feeds_tamper_lowercase_callback',
-  'name' => 'Lowercase',
+  'name'     => 'Lowercase',
+  'multi'    => 'loop',
 );
 
 function feeds_tamper_lowercase_form($settings) {
@@ -17,13 +18,6 @@ function feeds_tamper_lowercase_form($settings) {
   return $form;
 }
 
-function feeds_tamper_lowercase_callback($source, $key, &$field, $values) {
-  if (is_array($field)) {
-    foreach ($field as &$f) {
-      $f = strtolower($f);
-    }
-  }
-  else {
-    $field = strtolower($field);
-  }
+function feeds_tamper_lowercase_callback($source, $item_key, $element_key, &$field, $values) {
+  $field = strtolower($field);
 }

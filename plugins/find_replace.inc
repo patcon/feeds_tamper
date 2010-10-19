@@ -2,9 +2,10 @@
 // $Id$
 
 $plugin = array(
-  'form' => 'feeds_tamper_find_replace_form',
+  'form'     => 'feeds_tamper_find_replace_form',
   'callback' => 'feeds_tamper_find_replace_callback',
-  'name' => 'Find Replace',
+  'name'     => 'Find Replace',
+  'multi'    => 'loop',
 );
 
 function feeds_tamper_find_replace_form($settings) {
@@ -63,7 +64,7 @@ function feeds_tamper_find_replace_validate(&$values) {
   }
 }
 
-function feeds_tamper_find_replace_callback($source, $key, &$field, $values) {
+function feeds_tamper_find_replace_callback($source, $item_key, $element_key, &$field, $values) {
   if ($values['regex']) {
     $field = preg_replace($values['regex_find'], $values['replace'], $field);
   }

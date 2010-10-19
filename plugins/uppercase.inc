@@ -2,9 +2,10 @@
 // $Id$
 
 $plugin = array(
-  'form' => 'feeds_tamper_uppercase_form',
+  'form'     => 'feeds_tamper_uppercase_form',
   'callback' => 'feeds_tamper_uppercase_callback',
-  'name' => 'Uppercase',
+  'name'     => 'Uppercase',
+  'multi'    => 'loop',
 );
 
 function feeds_tamper_uppercase_form($settings) {
@@ -17,13 +18,6 @@ function feeds_tamper_uppercase_form($settings) {
   return $form;
 }
 
-function feeds_tamper_uppercase_callback($source, $key, &$field, $values) {
-  if (is_array($field)) {
-    foreach ($field as &$f) {
-      $f = strtoupper($f);
-    }
-  }
-  else {
-    $field = strtoupper($field);
-  }
+function feeds_tamper_uppercase_callback($source, $item_key, $element_key, &$field, $values) {
+  $field = strtoupper($field);
 }

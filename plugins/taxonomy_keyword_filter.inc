@@ -2,10 +2,11 @@
 // $Id$
 if (module_exists('taxonomy')) {
   $plugin = array(
-    'form' => 'feeds_tamper_taxonomy_keyword_filter_form',
+    'form'     => 'feeds_tamper_taxonomy_keyword_filter_form',
     'callback' => 'feeds_tamper_taxonomy_keyword_filter_callback',
     'validate' => 'feeds_tamper_taxonomy_keyword_filter_validate',
-    'name' => 'Keyword Filter by Vocabulary',
+    'name'     => 'Keyword Filter by Vocabulary',
+    'multi'    => 'loop',
   );
 }
 
@@ -73,10 +74,10 @@ function feeds_tamper_taxonomy_keyword_filter_validate(&$values) {
 }
 
 
-function feeds_tamper_taxonomy_keyword_filter_callback($source, $key, &$field, $values) {
-  static $words = NULL;
-  if (!$words) {
-    $words = array();
+function feeds_tamper_taxonomy_keyword_filter_callback($source, $item_key, $element_key, &$field, $values) {
+  static $words = array();
+  if (!isset($words[$element_key])) {
+    $words[$element_key] = array();
     foreach ($values['t']['vocabularies'] as $vid) {
       foreach (taxonomy_get_tree($vid) as $term) {
         $word_array = array();
@@ -91,27 +92,25 @@ function feeds_tamper_taxonomy_keyword_filter_callback($source, $key, &$field, $
               $word .= 'i';
             }
           }
-          $words[] = $word;
+          $words[$element_key][] = $word;
         }
       }
     }
   }
 
-  if (!is_array($field)) {
-    if ($values['regex']) {
-      foreach ($words as $word) {
-        if (preg_match($word, $field) > 0) {
-          return;
-        }
+  if ($values['regex']) {
+    foreach ($words[$element_key] as $word) {
+      if (preg_match($word, $field) > 0) {
+        return;
       }
     }
-    else {
-      foreach ($words as $word) {
-        if ($values['func']($field, $word) !== FALSE) {
-          return;
-        }
-      }
-    }
-    unset($source->batch->items[$key]);
   }
+  else {
+    foreach ($words[$element_key] as $word) {
+      if ($values['func']($field, $word) !== FALSE) {
+        return;
+      }
+    }
+  }
+  unset($source->batch->items[$item_key]);
 }
