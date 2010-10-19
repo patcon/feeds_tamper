@@ -53,23 +53,27 @@ function feeds_tamper_nodeapi(&$node, $op, $form) {
         break;
       case 'insert':
       case 'update':
-        feeds_tamper_delete_attached($importer_id, $node->nid);
-        foreach ($node->feeds_tamper as $source_field => $items) {
-          $items = array_filter($items['list']);
-          $settings = array();
-          foreach ($items as $item) {
-            $settings[$source_field][] = array(
-              'instance_id' => $item,
-              //'weight' => $item['weight'],
-            );
-          }
-          feeds_tamper_save_attached($importer_id, $node->nid, $settings);
-        }
+        _feeds_tamer_save($importer_id, $node->nid, $node->feeds_tamper);
         break;
       case 'delete':
         feeds_tamper_delete_attached($importer_id, $node->nid);
         break;
     }
+  }
+}
+
+function _feeds_tamer_save($importer_id, $nid, $values) {
+  feeds_tamper_delete_attached($importer_id, $nid);
+  foreach ($values as $source_field => $items) {
+    $items = array_filter($items['list']);
+    $settings = array();
+    foreach ($items as $item) {
+      $settings[$source_field][] = array(
+        'instance_id' => $item,
+        //'weight' => $item['weight'],
+      );
+    }
+    feeds_tamper_save_attached($importer_id, $nid, $settings);
   }
 }
 
@@ -79,46 +83,107 @@ function feeds_tamper_nodeapi(&$node, $op, $form) {
 function feeds_tamper_form_alter(&$form, &$form_state, $form_id) {
   if ($form['#id'] == 'node-form') {
     if ($importer_id = feeds_get_importer_id($form['type']['#value'])) {
-
-      $instances = feeds_tamper_load_all_instances();
-      $source = feeds_source($importer_id, empty($form['nid']['#value']) ? 0 : $form['nid']['#value']);
-      $mappings = $source->importer->processor->config['mappings'];
-      $attached = feeds_tamper_get_attached($importer_id, $form['nid']['#value']);
-
-      $form['feeds_tamper'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Feeds Tamper'),
-        '#tree' => TRUE,
-        '#collapsible' => TRUE,
-        '#collapsed' => TRUE,
-      );
-      $mods = array_keys($instances);
-      $mods = array_combine($mods, $mods);
-
-      foreach ($mappings as $mapping) {
-        $def = isset($attached[$mapping['source']]) ? $attached[$mapping['source']] : array();
-        $def_value = array();
-
-        foreach ($def as $d) {
-          $def_value[$d['instance_id']] = $d['instance_id'];
-        }
-
-        $form['feeds_tamper'][$mapping['source']] = array(
-          '#type' => 'fieldset',
-          '#title' => t($mapping['source']),
-        );
-
-        $form['feeds_tamper'][$mapping['source']]['list'] = array(
-          '#type' => 'checkboxes',
-          '#options' => $mods,
-          '#default_value' => $def_value,
-        );
-
-      }
+      $nid = !empty($form['nid']['#value']) ? $form['nid']['#value'] : 0;
+      _feeds_tamper_form_alter($importer_id, $nid, $form);
     }
   }
 }
 
+function _feeds_tamper_form_alter($importer_id, $nid, &$form) {
+  $instances = feeds_tamper_load_all_instances();
+  $source = feeds_source($importer_id, $nid);
+  $mappings = $source->importer->processor->config['mappings'];
+  $attached = feeds_tamper_get_attached($importer_id, $nid);
+
+  $form['feeds_tamper'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Feeds Tamper'),
+    '#tree' => TRUE,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $mods = array_keys($instances);
+  $mods = array_combine($mods, $mods);
+
+  foreach ($mappings as $mapping) {
+    $def = isset($attached[$mapping['source']]) ? $attached[$mapping['source']] : array();
+    $def_value = array();
+
+    foreach ($def as $d) {
+      $def_value[$d['instance_id']] = $d['instance_id'];
+    }
+
+    $form['feeds_tamper'][$mapping['source']] = array(
+      '#type' => 'fieldset',
+      '#title' => t($mapping['source']),
+    );
+
+    $form['feeds_tamper'][$mapping['source']]['list'] = array(
+      '#type' => 'checkboxes',
+      '#options' => $mods,
+      '#default_value' => $def_value,
+    );
+  }
+}
+
+/**
+ * Implementation of hook_feeds_node_processor_targets_alter().
+ *
+ * @see FeedsNodeProcessor::getMappingTargets().
+ */
+function feeds_tamper_feeds_node_processor_targets_alter(&$targets, $content_type) {
+  $targets['feeds_tamper_store'] = array(
+    'name' => 'Store',
+    'description' => t('A field that stores the source data temporarily.'),
+  );
+}
+
+/**
+ * Implementation of hook_feeds_parser_sources_alter().
+ */
+function feeds_tamper_feeds_parser_sources_alter(&$sources, $content_type) {
+  $sources['tamper:0'] = array(
+    'name' => 'Tamper Source',
+    'description' => t('A field that can be rewritten usings tokens.'),
+  );
+}
+
+/**
+ * Implementation of hook_form_FORM_ID_alter().
+ *
+ * This is an interesting bit of work. Each source name has to be unique,
+ * but we have no idea how many to create with getMappingSources() because we
+ * don't know how many targets there are going to be.
+ *
+ * The solution is to keep track in the form how many have been added.
+ */
+function feeds_tamper_form_feeds_ui_mapping_form_alter($form, &$form_state) {
+  $newest_token = array();
+  foreach ($form['#mappings'] as $mapping) {
+    if (strpos($mapping['source'], 'tamper:') === 0) {
+      $newest_token = $mapping;
+    }
+  }
+  if (!empty($newest_token)) {
+    list($a, $count) = explode(':', $newest_token['source']);
+    $default_source = $a . ':' . '0';
+    $label = $form['source']['#options'][$default_source];
+    unset($form['source']['#options'][$default_source]);
+    $form['source']['#options'][$a . ':' . ++$count] = $label;
+  }
+  return $form;
+}
+/**
+ * Implementation of hook_form_FORM_ID_alter().
+ */
+function feeds_tamper_form_feeds_import_form_alter(&$form, &$form_state) {
+  _feeds_tamper_form_alter($form['#importer_id'], 0, $form);
+  $form['#submit'][] = 'feeds_tamper_form_feeds_import_submit';
+}
+
+function feeds_tamper_form_feeds_import_submit($form, $form_state) {
+  _feeds_tamer_save($form['#importer_id'], 0, $form_state['values']['feeds_tamper']);
+}
 /**
  * Feeds Tamper api functions.
  */
