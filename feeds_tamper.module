@@ -119,7 +119,7 @@ function _feeds_tamper_form_alter($importer_id, $nid, &$form) {
     $mods = array();
     foreach ($instances as $instance) {
       $plugin = feeds_tamper_get_plugin($instance->plugin_id);
-      if (isset($plugin['allowed'])) {
+      if ($plugin['allowed']) {
         if ($plugin['allowed']($importer_id, $mapping['source'], $instance->settings)) {
           $mods[] = $instance->id;
         }
@@ -308,5 +308,10 @@ function feeds_tamper_ctools_plugin_plugins() {
   return array(
     'cache' => FALSE,
     'use hook' => FALSE,
+    'defaults' => array(
+      'validate' => FALSE,
+      'multi' => FALSE,
+      'allowed' => FALSE,
+    ),
   );
 }
