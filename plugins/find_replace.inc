@@ -4,6 +4,7 @@
 $plugin = array(
   'form'     => 'feeds_tamper_find_replace_form',
   'callback' => 'feeds_tamper_find_replace_callback',
+  'validate' => 'feeds_tamper_find_replace_validate',
   'name'     => 'Find Replace',
   'multi'    => 'loop',
 );

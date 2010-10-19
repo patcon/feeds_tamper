@@ -4,7 +4,6 @@
 $plugin = array(
   'form' => 'feeds_tamper_trim_form',
   'callback' => 'feeds_tamper_trim_callback',
-  'validate' => 'feeds_tamper_trim_validate',
   'name' => 'Trim',
   'multi' => 'loop',
 );
