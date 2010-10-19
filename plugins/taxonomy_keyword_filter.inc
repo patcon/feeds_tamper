@@ -57,18 +57,16 @@ function feeds_tamper_taxonomy_keyword_filter_form($settings) {
 }
 
 function feeds_tamper_taxonomy_keyword_filter_validate(&$values) {
-  $values['strpos'] = FALSE;
-  $values['stripos'] = FALSE;
   $values['regex'] = FALSE;
 
   if (!$values['word_boundaries'] && $values['case_sensetive']) {
-    $values['strpos'] = TRUE;
+    $values['func'] = 'strpos';
   }
 
   else if (!$values['word_boundaries'] && !$values['case_sensetive']) {
-    $values['stripos'] = TRUE;
+    $values['func'] = 'stripos';
   }
-  
+
   else {
     $values['regex'] = TRUE;
   }
@@ -107,16 +105,9 @@ function feeds_tamper_taxonomy_keyword_filter_callback($source, $key, &$field, $
         }
       }
     }
-    else if ($values['strpos']) {
-      foreach ($words as $word) {
-        if (strpos($field, $word) !== FALSE) {
-          return;
-        }
-      }
-    }
     else {
       foreach ($words as $word) {
-        if (stripos($field, $word) !== FALSE) {
+        if ($values['func']($field, $word) !== FALSE) {
           return;
         }
       }

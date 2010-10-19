@@ -40,38 +40,35 @@ function feeds_tamper_find_replace_form($settings) {
 }
 
 function feeds_tamper_find_replace_validate(&$values) {
-  $values['str_replace'] = FALSE;
-  $values['str_ireplace'] = FALSE;
+  $values['regex'] = FALSE;
 
   if (!$values['word_boundaries'] && $values['case_sensetive']) {
-    $values['str_replace'] = TRUE;
-    return;
+    $values['func'] = 'str_replace';
   }
 
-  if (!$values['word_boundaries'] && !$values['case_sensetive']) {
-    $values['str_ireplace'] = TRUE;
-    return;
-  }
-
-  $regex = '/\b' . $values['find'] . '\b/';
-
-  if (!$values['case_sensetive']) {
-    $regex .= 'i';
-  }
-
-  $values['regex_find'] = $regex;
-}
-
-function feeds_tamper_find_replace_callback($source, $key, &$field, $values) {
-  if ($values['str_replace']) {
-    $field = str_replace($values['find'], $values['replace'], $field);
-  }
-
-  else if ($values['str_ireplace']) {
-    $field = str_ireplace($values['find'], $values['replace'], $field);
+  else if (!$values['word_boundaries'] && !$values['case_sensetive']) {
+    $values['func'] = 'str_ireplace';
   }
 
   else {
+    $values['regex'] = TRUE;
+
+    $regex = '/\b' . $values['find'] . '\b/';
+
+    if (!$values['case_sensetive']) {
+      $regex .= 'i';
+    }
+
+    $values['regex_find'] = $regex;
+  }
+}
+
+function feeds_tamper_find_replace_callback($source, $key, &$field, $values) {
+  if ($values['regex']) {
     $field = preg_replace($values['regex_find'], $values['replace'], $field);
+  }
+
+  else {
+    $field = $values['func']($values['find'], $values['replace'], $field);
   }
 }
