@@ -178,7 +178,7 @@ function feeds_tamper_form_feeds_ui_mapping_form_alter($form, &$form_state) {
  */
 function feeds_tamper_form_feeds_import_form_alter(&$form, &$form_state) {
   _feeds_tamper_form_alter($form['#importer_id'], 0, $form);
-  $form['#submit'][] = 'feeds_tamper_form_feeds_import_submit';
+  array_unshift($form['#submit'], 'feeds_tamper_form_feeds_import_submit');
 }
 
 function feeds_tamper_form_feeds_import_submit($form, $form_state) {
