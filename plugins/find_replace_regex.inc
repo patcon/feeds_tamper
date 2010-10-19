@@ -29,8 +29,8 @@ function feeds_tamper_find_replace_regex_form($settings) {
   $form['limit'] = array(
     '#type' => 'textfield',
     '#title' => t('Limit number of replacements'),
-    '#default_value' => isset($settings['limit']) ? $settings['limit'] : 0,
-    '#description' => t('This sets an optional limit. 0 means no limit.'),
+    '#default_value' => isset($settings['limit']) ? $settings['limit'] : '',
+    '#description' => t('This sets an optional limit. Leave it blank for no limit.'),
   );
 
   return $form;
@@ -42,9 +42,15 @@ function feeds_tamper_find_replace_regex_validate(&$values) {
   if ($test === NULL) {
     return form_set_error('find', 'Invalid regular expression.');
   }
-  $values['limit'] = intval(trim($values['limit']));
+  $values['limit'] = trim($values['limit']);
+  if (empty($values['limit'])) {
+    $values['real_limit'] = -1;
+  }
+  else {
+    $values['real_limit'] = intval($values['limit']);
+  }
 }
 
 function feeds_tamper_find_replace_regex_callback($source, $item_key, $element_key, &$field, $values) {
-  $field = preg_replace($values['find'], $values['replace'], $field, $values['limit']);
+  $field = preg_replace($values['find'], $values['replace'], $field, $values['real_limit']);
 }
