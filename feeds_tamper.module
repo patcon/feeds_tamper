@@ -102,8 +102,6 @@ function _feeds_tamper_form_alter($importer_id, $nid, &$form) {
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
   );
-  $mods = array_keys($instances);
-  $mods = array_combine($mods, $mods);
 
   foreach ($mappings as $mapping) {
     $def = isset($attached[$mapping['source']]) ? $attached[$mapping['source']] : array();
@@ -118,9 +116,22 @@ function _feeds_tamper_form_alter($importer_id, $nid, &$form) {
       '#title' => t($mapping['source']),
     );
 
+    $mods = array();
+    foreach ($instances as $instance) {
+      $plugin = feeds_tamper_get_plugin($instance->plugin_id);
+      if (isset($plugin['allowed'])) {
+        if ($plugin['allowed']($importer_id, $mapping['source'], $instance->settings)) {
+          $mods[] = $instance->id;
+        }
+      }
+      else {
+        $mods[] = $instance->id;
+      }
+    }
+
     $form['feeds_tamper'][$mapping['source']]['list'] = array(
       '#type' => 'checkboxes',
-      '#options' => $mods,
+      '#options' => array_combine($mods, $mods),
       '#default_value' => $def_value,
     );
   }
@@ -157,7 +168,7 @@ function feeds_tamper_feeds_parser_sources_alter(&$sources, $content_type) {
  *
  * The solution is to keep track in the form how many have been added.
  */
-function feeds_tamper_form_feeds_ui_mapping_form_alter($form, &$form_state) {
+function feeds_tamper_form_feeds_ui_mapping_form_alter(&$form, &$form_state) {
   $newest_token = array();
   foreach ($form['#mappings'] as $mapping) {
     if (strpos($mapping['source'], 'tamper:') === 0) {
@@ -171,7 +182,6 @@ function feeds_tamper_form_feeds_ui_mapping_form_alter($form, &$form_state) {
     unset($form['source']['#options'][$default_source]);
     $form['source']['#options'][$a . ':' . ++$count] = $label;
   }
-  return $form;
 }
 /**
  * Implementation of hook_form_FORM_ID_alter().
