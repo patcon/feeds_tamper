@@ -24,18 +24,25 @@ function feeds_tamper_find_replace_form($settings) {
     '#default_value' => isset($settings['replace']) ? $settings['replace'] : '',
   );
 
+  $form['case_sensitive'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Case sensetive'),
+    '#default_value' => isset($settings['case_sensitive']) ? $settings['case_sensitive'] : FALSE,
+    '#description' => t('If checked, "book" will match "book" but not "Book" or "BOOK".')
+  );
+
   $form['word_boundaries'] = array(
     '#type' => 'checkbox',
     '#title' => t('Respect word boundaries'),
     '#default_value' => isset($settings['word_boundaries']) ? $settings['word_boundaries'] : FALSE,
-    '#description' => t('If checked, then "book" will match "book" but not "bookcase".'),
+    '#description' => t('If checked, "book" will match "book" but not "bookcase".'),
   );
 
-  $form['case_sensetive'] = array(
+  $form['whole'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Case sensetive'),
-    '#default_value' => isset($settings['case_sensetive']) ? $settings['case_sensetive'] : FALSE,
-    '#description' => t('If checked, then "book" will match "book" but not "Book" or "BOOK".')
+    '#title' => t('Match whole word/phrase'),
+    '#default_value' => isset($settings['whole']) ? $settings['whole'] : FALSE,
+    '#description' => t('If checked, then the whole word or phrase will be matched, e.g. "book" will match not match "book" in "the book".<br>If this option is selected then "Respect word boundaries" above will be ignored.')
   );
 
   return $form;
@@ -44,20 +51,26 @@ function feeds_tamper_find_replace_form($settings) {
 function feeds_tamper_find_replace_validate(&$values) {
   $values['regex'] = FALSE;
 
-  if (!$values['word_boundaries'] && $values['case_sensetive']) {
+  if (!$values['word_boundaries'] && !$values['whole'] &&
+      $values['case_sensitive']) {
     $values['func'] = 'str_replace';
   }
 
-  else if (!$values['word_boundaries'] && !$values['case_sensetive']) {
+  else if (!$values['word_boundaries'] && !$values['whole'] &&
+           !$values['case_sensitive']) {
     $values['func'] = 'str_ireplace';
   }
 
   else {
     $values['regex'] = TRUE;
 
-    $regex = '/\b' . $values['find'] . '\b/';
-
-    if (!$values['case_sensetive']) {
+    if ($values['whole']) {
+      $regex = '/^' . $values['find'] . '$/';
+    }
+    else {
+      $regex = '/\b' . $values['find'] . '\b/';
+    }
+    if (!$values['case_sensitive']) {
       $regex .= 'i';
     }
 

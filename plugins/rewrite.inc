@@ -56,7 +56,7 @@ function feeds_tamper_rewrite_form($settings) {
 
     foreach ($mappings as $map) {
       $form[$importer_id][$map['source']] = array(
-        '#type' => 'textfield',
+        '#type' => 'textarea',
         '#title' => t($map['source'] . '(' . $map['target'] . ')'),
         '#default_value' => isset($settings[$importer_id][$map['source']]) ? $settings[$importer_id][$map['source']] : '',
       );
@@ -79,10 +79,11 @@ function feeds_tamper_rewrite_validate(&$values) {
 function feeds_tamper_rewrite_callback($source, $item_key, $element_key, &$field, $values) {
   $res = $values[$values['importer']][$element_key];
   $sources = $source->batch->items[$item_key];
+  $trans = array();
   foreach ($sources as $key => $value) {
-    $res = str_replace("[$key]", $value, $res);
+    $trans['[' . $key . ']'] = $value;
   }
-  $field = $res;
+  $field = strtr($res, $trans);
 }
 
 function feeds_tamper_rewrite_allowed($importer_id, $element_key, $values) {

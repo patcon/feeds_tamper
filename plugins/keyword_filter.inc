@@ -41,27 +41,25 @@ function feeds_tamper_keyword_filter_validate(&$values) {
   $values['word_list'] = explode("\n", $values['words']);
   $values['word_list'] = array_map('trim', $values['word_list']);
 
-  $values['strpos'] = FALSE;
-  $values['stripos'] = FALSE;
   $values['regex'] = FALSE;
 
   if (!$values['word_boundaries'] && $values['case_sensetive']) {
-    $values['strpos'] = TRUE;
-    return;
+    $values['func'] = 'strpos';
   }
 
-  if (!$values['word_boundaries'] && !$values['case_sensetive']) {
-    $values['stripos'] = TRUE;
-    return;
+  else if (!$values['word_boundaries'] && !$values['case_sensetive']) {
+    $values['func'] = 'stripos';
   }
-  foreach ($values['word_list'] as &$word) {
-    $word = '/\b' . $word . '\b/';
+  else {
+    foreach ($values['word_list'] as &$word) {
+      $word = '/\b' . $word . '\b/';
 
-    if (!$values['case_sensetive']) {
-      $word .= 'i';
+      if (!$values['case_sensetive']) {
+        $word .= 'i';
+      }
     }
+    $values['regex'] = TRUE;
   }
-  $values['regex'] = TRUE;
 }
 
 function feeds_tamper_keyword_filter_callback($source, $item_key, $element_key, &$field, $values) {
@@ -72,16 +70,9 @@ function feeds_tamper_keyword_filter_callback($source, $item_key, $element_key, 
       }
     }
   }
-  else if ($values['strpos']) {
-    foreach ($values['word_list'] as $word) {
-      if (strpos($field, $word) !== FALSE) {
-        return;
-      }
-    }
-  }
   else {
     foreach ($values['word_list'] as $word) {
-      if (stripos($field, $word) !== FALSE) {
+      if ($values['func']($field, $word) !== FALSE) {
         return;
       }
     }
