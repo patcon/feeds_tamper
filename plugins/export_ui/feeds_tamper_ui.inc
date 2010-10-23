@@ -36,7 +36,6 @@ function feeds_tamper_add_plugin_form(&$form, &$form_state) {
   foreach ($plugins as &$p) {
     asort($p);
   }
-  dpm($plugins);
 
   $plugin = $instance->plugin_id ? $instance->plugin_id : key($plugins);
 
