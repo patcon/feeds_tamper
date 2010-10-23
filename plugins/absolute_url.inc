@@ -5,6 +5,7 @@ $plugin = array(
   'form'     => 'feeds_tamper_absolute_url_form',
   'callback' => 'feeds_tamper_absolute_url_callback',
   'name'     => 'Make URLs absolute',
+  'category' => 'HTML',
 );
 
 function feeds_tamper_absolute_url_form($settings) {

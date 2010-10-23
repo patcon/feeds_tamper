@@ -6,6 +6,7 @@ $plugin = array(
   'callback' => 'feeds_tamper_html_convert_case_callback',
   'name'     => 'Convert case',
   'multi'    => 'loop',
+  'category' => 'Text',
 );
 
 function feeds_tamper_html_convert_case_form($settings) {

@@ -418,6 +418,7 @@ function feeds_tamper_ctools_plugin_plugins() {
       'validate' => FALSE,
       'multi' => FALSE,
       'allowed' => FALSE,
+      'category' => 'Other',
     ),
   );
 }

@@ -6,6 +6,7 @@ $plugin = array(
   'callback' => 'feeds_tamper_uppercase_callback',
   'name'     => 'Uppercase',
   'multi'    => 'loop',
+  'category' => 'Text',
 );
 
 function feeds_tamper_uppercase_form($settings) {

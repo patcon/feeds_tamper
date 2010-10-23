@@ -7,6 +7,7 @@ $plugin = array(
   'validate' => 'feeds_tamper_keyword_filter_validate',
   'name'     => 'Keyword Filter',
   'multi'    => 'skip',
+  'category' => 'Filter',
 );
 
 function feeds_tamper_keyword_filter_form($settings) {
@@ -15,9 +16,9 @@ function feeds_tamper_keyword_filter_form($settings) {
 
   $form['words'] = array(
     '#type' => 'textarea',
-    '#title' => t('Word to filter on'),
+    '#title' => t('Words or phrases to filter on'),
     '#default_value' => isset($settings['words']) ? $settings['words'] : '',
-    '#description' => t('A list of words that to appear in the text.'),
+    '#description' => t('A list of words/phrases that need to appear in the text.'),
   );
 
   $form['word_boundaries'] = array(
@@ -27,10 +28,10 @@ function feeds_tamper_keyword_filter_form($settings) {
     '#description' => t('If checked, then "book" will match "book" but not "bookcase".'),
   );
 
-  $form['case_sensetive'] = array(
+  $form['case_sensitive'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Case sensetive'),
-    '#default_value' => isset($settings['case_sensetive']) ? $settings['case_sensetive'] : FALSE,
+    '#title' => t('Case sensitive'),
+    '#default_value' => isset($settings['case_sensitive']) ? $settings['case_sensitive'] : FALSE,
     '#description' => t('If checked, then "book" will match "book" but not "Book" or "BOOK".')
   );
 
@@ -43,18 +44,18 @@ function feeds_tamper_keyword_filter_validate(&$values) {
 
   $values['regex'] = FALSE;
 
-  if (!$values['word_boundaries'] && $values['case_sensetive']) {
+  if (!$values['word_boundaries'] && $values['case_sensitive']) {
     $values['func'] = 'strpos';
   }
 
-  else if (!$values['word_boundaries'] && !$values['case_sensetive']) {
+  else if (!$values['word_boundaries'] && !$values['case_sensitive']) {
     $values['func'] = 'stripos';
   }
   else {
     foreach ($values['word_list'] as &$word) {
       $word = '/\b' . $word . '\b/';
 
-      if (!$values['case_sensetive']) {
+      if (!$values['case_sensitive']) {
         $word .= 'i';
       }
     }

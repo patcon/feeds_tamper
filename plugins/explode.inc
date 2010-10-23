@@ -7,6 +7,7 @@ $plugin = array(
   'validate' => 'feeds_tamper_explode_validate',
   'name'     => 'Explode',
   'multi'    => 'skip',
+  'category' => 'List',
 );
 
 function feeds_tamper_explode_form($settings) {

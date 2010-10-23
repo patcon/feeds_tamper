@@ -7,6 +7,7 @@ $plugin = array(
   'validate' => 'feeds_tamper_find_replace_regex_validate',
   'name'     => 'Find Replace REGEX',
   'multi'    => 'direct',
+  'category' => 'Text',
 );
 
 function feeds_tamper_find_replace_regex_form($settings) {

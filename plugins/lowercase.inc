@@ -6,6 +6,7 @@ $plugin = array(
   'callback' => 'feeds_tamper_lowercase_callback',
   'name'     => 'Lowercase',
   'multi'    => 'loop',
+  'category' => 'Text',
 );
 
 function feeds_tamper_lowercase_form($settings) {

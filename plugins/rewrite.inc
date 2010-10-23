@@ -8,6 +8,7 @@ $plugin = array(
   'name'     => 'Rewrite',
   'multi'    => 'skip',
   'allowed'  => 'feeds_tamper_rewrite_allowed',
+  'category' => 'Other',
 );
 
 function feeds_tamper_rewrite_form($settings) {

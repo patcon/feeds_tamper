@@ -29,8 +29,15 @@ function feeds_tamper_add_plugin_form(&$form, &$form_state) {
 
   $plugins = array();
   foreach ($feeds_tamper_plugins as $plugin_id => $plugin) {
-    $plugins[$plugin_id] = $plugin['name'];
+    $plugins[$plugin['category']][$plugin_id] = $plugin['name'];
   }
+
+  ksort($plugins);
+  foreach ($plugins as &$p) {
+    asort($p);
+  }
+  dpm($plugins);
+
   $plugin = $instance->plugin_id ? $instance->plugin_id : key($plugins);
 
   $form['plugin_id'] = array(

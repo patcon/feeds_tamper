@@ -2,10 +2,11 @@
 // $Id$
 
 $plugin = array(
-  'form' => 'feeds_tamper_trim_form',
+  'form'     => 'feeds_tamper_trim_form',
   'callback' => 'feeds_tamper_trim_callback',
-  'name' => 'Trim',
-  'multi' => 'loop',
+  'name'     => 'Trim',
+  'multi'    => 'loop',
+  'category' => 'Text',
 );
 
 function feeds_tamper_trim_form($settings) {

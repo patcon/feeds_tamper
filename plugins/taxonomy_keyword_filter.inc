@@ -7,6 +7,7 @@ if (module_exists('taxonomy')) {
     'validate' => 'feeds_tamper_taxonomy_keyword_filter_validate',
     'name'     => 'Keyword Filter by Vocabulary',
     'multi'    => 'loop',
+    'category' => 'Filter',
   );
 }
 
@@ -47,10 +48,10 @@ function feeds_tamper_taxonomy_keyword_filter_form($settings) {
     '#description' => t('If checked, then "book" will match "book" but not "bookcase".'),
   );
 
-  $form['case_sensetive'] = array(
+  $form['case_sensitive'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Case sensetive'),
-    '#default_value' => isset($settings['case_sensetive']) ? $settings['case_sensetive'] : FALSE,
+    '#title' => t('Case sensitive'),
+    '#default_value' => isset($settings['case_sensitive']) ? $settings['case_sensitive'] : FALSE,
     '#description' => t('If checked, then "book" will match "book" but not "Book" or "BOOK".')
   );
 
@@ -60,11 +61,11 @@ function feeds_tamper_taxonomy_keyword_filter_form($settings) {
 function feeds_tamper_taxonomy_keyword_filter_validate(&$values) {
   $values['regex'] = FALSE;
 
-  if (!$values['word_boundaries'] && $values['case_sensetive']) {
+  if (!$values['word_boundaries'] && $values['case_sensitive']) {
     $values['func'] = 'strpos';
   }
 
-  else if (!$values['word_boundaries'] && !$values['case_sensetive']) {
+  else if (!$values['word_boundaries'] && !$values['case_sensitive']) {
     $values['func'] = 'stripos';
   }
 
@@ -88,7 +89,7 @@ function feeds_tamper_taxonomy_keyword_filter_callback($source, $item_key, $elem
         foreach ($word_array as $word) {
           if ($values['regex']) {
             $word = '/\b' . $word . '\b/';
-            if (!$values['case_sensetive']) {
+            if (!$values['case_sensitive']) {
               $word .= 'i';
             }
           }

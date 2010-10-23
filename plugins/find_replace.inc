@@ -7,6 +7,7 @@ $plugin = array(
   'validate' => 'feeds_tamper_find_replace_validate',
   'name'     => 'Find Replace',
   'multi'    => 'loop',
+  'category' => 'Text',
 );
 
 function feeds_tamper_find_replace_form($settings) {
@@ -26,7 +27,7 @@ function feeds_tamper_find_replace_form($settings) {
 
   $form['case_sensitive'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Case sensetive'),
+    '#title' => t('Case sensitive'),
     '#default_value' => isset($settings['case_sensitive']) ? $settings['case_sensitive'] : FALSE,
     '#description' => t('If checked, "book" will match "book" but not "Book" or "BOOK".')
   );

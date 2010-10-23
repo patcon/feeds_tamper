@@ -6,6 +6,7 @@ $plugin = array(
   'callback' => 'feeds_tamper_html_entity_decode_callback',
   'name'     => 'HTML entity decode',
   'multi'    => 'loop',
+  'category' => 'HTML',
 );
 
 function feeds_tamper_html_entity_decode_form($settings) {

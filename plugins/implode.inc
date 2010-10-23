@@ -8,6 +8,7 @@ $plugin = array(
   'name'     => 'Implode',
   'multi'    => 'direct',
   'single'   => 'skip',
+  'category' => 'List',
 );
 
 function feeds_tamper_implode_form($settings) {

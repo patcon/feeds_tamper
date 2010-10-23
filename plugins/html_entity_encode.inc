@@ -4,8 +4,9 @@
 $plugin = array(
   'form'     => 'feeds_tamper_html_entity_encode_form',
   'callback' => 'feeds_tamper_html_entity_encode_callback',
-  'name'     => 'HTML entitiy encode',
+  'name'     => 'HTML entity encode',
   'multi'    => 'loop',
+  'category' => 'HTML',
 );
 
 function feeds_tamper_html_entity_encode_form($settings) {
